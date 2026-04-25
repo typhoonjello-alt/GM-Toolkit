@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shadowdark GM Assistant</title>
+  
+  <!-- Inline CSS -->
+  <style>
+    body {
+      background-color: #2a2a2a;
+      color: white;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background-color: #1b1b1b;
+      padding: 10px 20px;
+      text-align: center;
+    }
+
+    button {
+      background-color: #444;
+      color: white;
+      border: 1px solid #888;
+      padding: 10px;
+      cursor: pointer;
+      margin: 5px;
+    }
+
+    button:hover {
+      background-color: #555;
+    }
+
+    #tracker {
+      padding: 20px;
+      margin: 20px;
+    }
+
+    #encounter-results {
+      background-color: #333;
+      padding: 10px;
+      border-radius: 5px;
+    }
+
+    #round-status {
+      margin-top: 10px;
+    }
+
+    footer {
+      text-align: center;
+      background-color: #1b1b1b;
+      padding: 10px;
+    }
+
+    select {
+      background-color: #444;
+      color: white;
+      border: 1px solid #888;
+      padding: 5px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body class="dark-theme">
+  <header>
+    <h1>Shadowdark GM Assistant</h1>
+    <nav>
+      <button id="start-round-btn">Start Round</button>
+      <button id="new-torch-btn">Light New Torch</button>
+      <button id="pause-btn">Pause Torch</button>
+      <button id="extinguish-btn">Extinguish Torch</button>
+    </nav>
+    <label for="danger-level">Select Danger Level:</label>
+    <select id="danger-level">
+      <option value="unsafe">Unsafe</option>
+      <option value="risky">Risky</option>
+      <option value="deadly">Deadly</option>
+    </select>
+    <label for="environment">Select Environment:</label>
+    <select id="environment">
+      <option value="ruins">Ruins</option>
+      <option value="caves">Caves</option>
+      <option value="forest">Forest</option>
+    </select>
+  </header>
+
+  <main>
+    <section id="tracker">
+      <div id="encounter-results"></div>
+      <div id="round-status">Current Round: 0</div>
+    </section>
+
+    <section id="torchlight">
+      <ul id="torch-time"></ul>
+    </section>
+    
+    <section id="log">
+      <h2>Recent Encounters</h2>
+      <ul id="encounter-log">
+        <!-- Encounter log items will appear here -->
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <p>At times, the Shadowdark seemed sentient in its malevolence. It was as though some hand guided it.</p>
+  </footer>
+
+  <!-- Link to External Encounters Script -->
+  <script src="encounters.js"></script>
+
+  <!-- Inline JavaScript -->
+  <script>
+    let round = 0;
+    let encounterInterval;
+    let dangerLevels = {
+      unsafe: 3,   // Encounter happens every 3 rounds
+      risky: 2,    // Encounter happens every 2 rounds
+      deadly: 1    // Encounter happens every round
+    };
+
+    // Function to get a random encounter based on selected environment
+    function getRandomEncounter(environment) {
+      const encounters = encounterTables[environment] || encounterTables.ruins; // Default to ruins if no environment is selected
+      const roll = Math.floor(Math.random() * encounters.length);  // Random encounter roll
+      return encounters[roll].encounter;
+    }
+
+    // Function to update the round counter
+    function updateRoundCounter() {
+      const roundStatus = document.getElementById('round-status');
+      roundStatus.innerText = `Current Round: ${round}`;
+    }
+
+    // Function to start a new round
+    function startNewRound() {
+      round++;
+      updateRoundCounter();
+
+      // Get selected danger level and environment
+      const dangerLevel = document.getElementById('danger-level').value;
+      const environment = document.getElementById('environment').value;
+      
+      const encounterThreshold = dangerLevels[dangerLevel] || 3; // Default to "unsafe" if something goes wrong
+
+      // If the round matches the threshold, roll for encounter
+      if (round % encounterThreshold === 0) {
+        rollForEncounter(environment);
+      }
+    }
+
+    // Function to handle encounter roll
+    async function rollForEncounter(environment) {
+      const d6 = Math.floor(Math.random() * 6) + 1; // Roll d6
+      if (d6 === 1) {
+        const encounter = getRandomEncounter(environment);
+        document.getElementById('encounter-results').innerText = `Encounter: ${encounter}`;
+        
+        // Log the encounter
+        const logItem = document.createElement('li');
+        logItem.textContent = `Encounter Rolled: ${encounter}`;
+        document.getElementById('encounter-log').appendChild(logItem);
+        
+        // Reset the round counter after an encounter
+        round = 0;
+        updateRoundCounter();  // Reset round display
+      }
+    }
+ 
+    // Function to start the torch countdown timer
+    function startTorchCountdown() {
+      if (torchRunning) return; // Prevent starting if already running
+        // Logic needed here...
+    }
+    
+    // Button to start a new round
+    document.getElementById('start-round-btn').addEventListener('click', function() {
+      startNewRound();
+    });
+
+    // Button to light a new torch
+    document.getElementById('new-torch-btn').addEventListener('click', function() {
+      startTorchCountdown();
+    });
+
+    // Button to pause the torchlight countdown
+    document.getElementById('pause-btn').addEventListener('click', function() {
+      // Your torchlight pause logic remains here...
+    });
+
+    // Button to extinguish the torch
+    document.getElementById('extinguish-btn').addEventListener('click', function() {
+      // Your torchlight extinguish logic remains here...
+    });
+  </script>
+</body>
+</html>

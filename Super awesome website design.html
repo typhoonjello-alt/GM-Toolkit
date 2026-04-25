@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shadowdark GM Assistant</title>
+  
+  <!-- Inline CSS -->
+  <style>
+    body {
+      background-color: #2a2a2a;
+      color: white;
+      font-family: Garamond;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background-color: #1b1b1b;
+      padding: 10px 20px;
+      text-align: center;
+    }
+
+    button {
+      background-color: #444;
+      color: white;
+      border: 1px solid #888;
+      padding: 10px;
+      cursor: pointer;
+      margin: 5px;
+    }
+
+    button:hover {
+      background-color: #555;
+    }
+    
+    #rollButton {
+        padding: 10px 20px;
+        font-size: 18px;
+        text-align: center;
+        cursor: pointer;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+    }
+    
+    #rollResult {
+        margin-top: 20px;
+        text-align: center;
+        font-size: 24px;
+        font-weight: bold;
+    }
+    
+    #tracker {
+      padding: 20px;
+      margin: 20px;
+    }
+    
+    #log {
+        padding: 20px;
+        margin: 20px;
+    }
+    
+    #encounter-results {
+      background-color: #333;
+      padding: 10px;
+      border-radius: 5px;
+    }
+
+    #round-status {
+      margin-top: 10px;
+    }
+
+    footer {
+      text-align: center;
+      background-color: #1b1b1b;
+      padding: 10px;
+    }
+
+    select {
+      background-color: #444;
+      color: white;
+      border: 1px solid #888;
+      padding: 5px;
+      margin-top: 10px;
+    }
+
+    #torchlight {
+      margin-top: 20px;
+    }
+
+    #timer-display {
+      font-size: 20px;
+      color: #fff;
+      margin-top: 10px;
+      text-align: center;
+    }
+    
+    .progress-container {
+      width: 100%; 
+      height: 20px; 
+      background-color: #fca503; 
+      margin-top: 10px;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+      border-radius: 0px, 5px, 5px, 0px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background-color: #444;
+      width: 0%;
+     
+      transition: width 1s linear;
+    }
+    
+  </style>
+</head>
+<body class="dark-theme">
+  <header>
+    <h1>Shadowdark GM Assistant</h1>
+    <nav>
+      <button id="start-round-btn">Start Round</button>
+      <button id="new-torch-btn">Light New Torch</button>
+      <button id="pause-btn">Pause Torch</button>
+      <button id="extinguish-btn">Extinguish Torch</button>
+    </nav>
+    <label for="danger-level">Select Danger Level:</label>
+    <select id="danger-level">
+      <option value="unsafe">Unsafe</option>
+      <option value="risky">Risky</option>
+      <option value="deadly">Deadly</option>
+    </select>
+    <label for="environment">Select Environment:</label>
+    <select id="environment">
+      <option value="arctic">Arctic</option>
+      <option value="artisanDistrict">Artisan District</option>
+      <option value="castleDistrict">Castle District</option>
+      <option value="caves">Cave</option>
+      <option value="deepTunnels">Deep Tunnels</option>
+      <option value="desert">Desert</option>
+      <option value="forest">Forest</option>
+      <option value="grasslands">Grassland</option>
+      <option value="highDistrict">High District</option>
+      <option value="jungle">Jungle</option>
+      <option value="lowDistrict">Low District</option>
+      <option value="market">Market</option>
+      <option value="mountain">Mountain</option>
+      <option value="ocean">Ocean</option>
+      <option value="riverAndCoast">River and Coast</option>
+      <option value="ruins">Ruins</option>
+      <option value="slums">Slums</option>
+      <option value="swamp">Swamp</option>
+      <option value="tavern">Tavern</option>
+      <option value="templeDistrict">Temple District</option>
+      <option value="tomb">Tomb</option>
+      <option value="universityDistrict">University District</option>
+    </select>
+    <label for="torch-duration">Select Torch Duration:</label>
+      <select id="torch-duration">
+        <!-- Dev stuff
+        <option value="1">1 Minute</option>
+        -->
+        <option value="30">30 Minutes</option>
+        <option value="60">1 Hour</option>
+        <option value="120">2 Hours</option>
+        <option value="180">3 Hours</option>
+      </select>
+  </header>
+
+  <main>
+    
+    <section id="torchlight">
+      <div id="timer-display">Time Remaining: 00:00</div>
+    
+    <div class="progress-container">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+    </section>
+    
+    <section id="tracker">
+      <div id="encounter-results"></div>
+      <div id="round-status">Current Round: 0</div>
+    </section>
+
+    
+    <section id="log">
+      <h2>Recent Encounters</h2>
+      <ul id="encounter-log">
+        <!-- Encounter log items will appear here -->
+      </ul>
+    </section>
+    
+    <h2>The Fate Mill</h2>
+    <button id="rollButton" onclick="rollDice()">Roll d20</button>
+    <div id="rollResult"></div>
+  </main>
+
+  <footer>
+    <p>"At times, the Shadowdark seemed sentient in its malevolence. It was as though some hand guided it."</p>
+  </footer>
+
+  <script src="encounters.js"></script>
+
+  <!-- Inline JavaScript -->
+  <script>
+    let round = 0;
+    let encounterInterval;
+    let dangerLevels = {
+      unsafe: 3,   // Encounter happens every 3 rounds
+      risky: 2,    // Encounter happens every 2 rounds
+      deadly: 1    // Encounter happens every round
+    };
+
+    // Torch Timer Variables
+    let timerInterval;
+    let timeLeft = 0;
+    let torchRunning = false;
+    let isPaused = false;
+    let selectedDuration = 0;
+
+    // Function to get a random encounter based on selected environment
+    function getRandomEncounter(environment) {
+      const encounters = encounterTables[environment] || encounterTables.ruins; // Default to ruins if no environment is selected
+      const roll = Math.floor(Math.random() * encounters.length);  // Random encounter roll
+      return encounters[roll].encounter;
+    }
+
+    // Function to update the round counter
+    function updateRoundCounter() {
+      const roundStatus = document.getElementById('round-status');
+      roundStatus.innerText = `Current Round: ${round}`;
+    }
+
+    // Function to start a new round
+    function startNewRound() {
+      round++;
+      updateRoundCounter();
+
+      // Get selected danger level and environment
+      const dangerLevel = document.getElementById('danger-level').value;
+      const environment = document.getElementById('environment').value;
+      
+      const encounterThreshold = dangerLevels[dangerLevel] || 3; // Default to "unsafe" if something goes wrong
+
+      // If the round matches the threshold, roll for encounter
+      if (round % encounterThreshold === 0) {
+        rollForEncounter(environment);
+      }
+    }
+
+    // Function to handle encounter roll
+    async function rollForEncounter(environment) {
+      const d6 = Math.floor(Math.random() * 6) + 1; // Roll d6
+      if (d6 === 1) {
+        const encounter = getRandomEncounter(environment);
+        document.getElementById('encounter-results').innerText = `Encounter: ${encounter}`;
+        
+        // Log the encounter
+        const logItem = document.createElement('li');
+        logItem.textContent = `Encounter Rolled: ${encounter}`;
+        document.getElementById('encounter-log').appendChild(logItem);
+        
+        // Reset the round counter after an encounter
+        round = 0;
+        updateRoundCounter();  // Reset round display
+      }
+    }
+
+    // Function to update timer display
+    function updateTimerDisplay() {
+      const minutes = Math.floor(timeLeft / 60);
+      const seconds = timeLeft % 60;
+      document.getElementById('timer-display').innerText = `Time Remaining: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    // Function to start the torch countdown
+    function startTorchCountdown() {
+    
+      if (!torchRunning) {
+        // If the timer is not running, set a new duration
+        selectedDuration = parseInt(document.getElementById('torch-duration').value);
+        timeLeft = selectedDuration * 60; // Convert to seconds
+      }
+      
+      timeLeft = selectedDuration * 60;
+      isPaused = false;
+      torchRunning = true;
+      updateTimerDisplay();
+      updateProgressBar();  // Initialize progress bar
+    
+      timerInterval = setInterval(function() {
+        if (timeLeft > 0) {
+          timeLeft--; // Decrease time by 1 second
+          updateTimerDisplay();  // Update the timer display
+          updateProgressBar();   // Update the progress bar
+        } else {
+          clearInterval(timerInterval);
+          timerInterval = null;
+          torchRunning = false;
+          alert('The torch has burned out!');
+          const dangerSelect = document.getElementById('danger-level');
+          dangerSelect.value = 'deadly';
+        }
+      }, 1000); // Run every 1 second
+    }
+    
+
+    // Function to update progress bar
+    function updateProgressBar() {
+      const progress = ((selectedDuration * 60 - timeLeft) / (selectedDuration * 60)) * 100; // Calculate percentage
+      const progressBar = document.getElementById('progressBar');
+      progressBar.style.width = progress + '%'; // Update the width of the progress bar
+    }
+
+
+    // Function to pause or resume the torch countdown
+    function togglePause() {
+      const pauseButton = document.getElementById('pause-btn');
+      if (isPaused) {
+        // Resume the countdown
+        isPaused = false;
+        torchRunning = true;timerInterval = setInterval(function() {
+        if (timeLeft > 0) {
+          timeLeft--; // Decrease time by 1 second
+          updateTimerDisplay();  // Update the timer display
+          updateProgressBar();   // Update the progress bar
+        } else {
+          clearInterval(timerInterval);
+          timerInterval = null;
+          torchRunning = false;
+          alert('The torch has burned out!');
+          const dangerSelect = document.getElementById('danger-level');
+          dangerSelect.value = 'deadly';
+        }
+      }, 1000); // Run every 1 second
+        pauseButton.innerText = 'Pause Torch'; // Change button text to "Pause"
+      } else {
+        // Pause the countdown
+        clearInterval(timerInterval);
+        timerInterval = null;
+        isPaused = true;
+        pauseButton.innerText = 'Resume Torch'; // Change button text to "Resume"
+      }
+    }
+
+    // Function to extinguish the torch
+    function extinguishTorch() {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      timeLeft = 0;
+      torchRunning = false;
+      updateTimerDisplay();
+      const progressBar = document.getElementById('progressBar');
+      progressBar.style.width = '0%'; 
+    }
+
+    // Button to start a new round
+    document.getElementById('start-round-btn').addEventListener('click', function() {
+      startNewRound();
+    });
+
+    // Button to light a new torch
+    document.getElementById('new-torch-btn').addEventListener('click', function() {
+      extinguishTorch();
+      startTorchCountdown();
+    });
+
+    // Button to pause or resume the torchlight countdown
+    document.getElementById('pause-btn').addEventListener('click', function() {
+      togglePause();
+    });
+
+    // Button to extinguish the torch
+    document.getElementById('extinguish-btn').addEventListener('click', function() {
+      extinguishTorch();
+    });
+    
+    function rollDice() {
+        const outcomes = [
+            "No, and", "No, and", "No, and", "No, and", "No", "No", 
+            "No, but", "No, but", "No, but", "Maybe, but", "Maybe", 
+            "Maybe", "Maybe, and", "Yes, but", "Yes, but", "Yes, but", 
+               "Yes", "Yes, and", "Yes, and", "Yes, and", "Yes, and, and"
+        ];
+            
+        const roll = Math.floor(Math.random() * 20); // 0-19 index for outcomes array
+        document.getElementById("rollResult").textContent = `${outcomes[roll]}`;
+    }
+  </script>
+</body>
+</html>
